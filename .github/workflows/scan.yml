@@ -12,14 +12,10 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Run Aqua Supply Chain Scanner
-        run: |
-          docker run \
-            -e AQUA_KEY \
-            -e AQUA_SECRET \
-            -e TRIVY_RUN_AS_PLUGIN=aqua \
-            -v ${{ github.workspace }}:/scanning \
-            aquasec/trivy:latest \
-            fs --scanners vuln,secret,misconfig --severity UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL /scanning
+        uses: docker://aquasec/trivy:latest
+        with:
+          args: fs --scanners vuln,secret,misconfig --severity UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL /github/workspace
         env:
           AQUA_KEY: ${{ secrets.AQUA_KEY }}
           AQUA_SECRET: ${{ secrets.AQUA_SECRET }}
+          TRIVY_RUN_AS_PLUGIN: aqua
