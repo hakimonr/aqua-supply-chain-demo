@@ -1,21 +1,29 @@
 name: Aqua Supply Chain Scan
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
+  push:
+    branches: [main, develop]
 
 jobs:
-  scan:
+  aqua-scan:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Run Aqua Supply Chain Scanner
-        uses: docker://aquasec/trivy:latest
-        with:
-          args: fs --scanners vuln,secret,misconfig --severity UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL /github/workspace
+      - name: Build image
+        run: docker build -t aqua-demo-app:${{ github.sha }} .
+
+      - name: Aqua scan (policy-gated)
         env:
           AQUA_KEY: ${{ secrets.AQUA_KEY }}
           AQUA_SECRET: ${{ secrets.AQUA_SECRET }}
+          AQUA_URL: ${{ secrets.AQUA_URL }}
+          CSP_ENDPOINT: ${{ secrets.CSP_ENDPOINT }}
           TRIVY_RUN_AS_PLUGIN: aqua
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -e AQUA_KEY -e AQUA_SECRET -e AQUA_URL -e CSP_ENDPOINT -e TRIVY_RUN_AS_PLUGIN \
+            registry.aquasec.com/aqua-scanner:latest \
+            trivy image --scanners vuln,secret,misconfig aqua-demo-app:${{ github.sha }}
